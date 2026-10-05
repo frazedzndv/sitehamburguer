@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo — Montagem do hambúrguer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;1,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--coal:#24211e;--cream:#f5efe4;--clay:#a4472d;--sand:#e5d7c3;--olive:#525b3d;--track:270vh;--progress:0;color-scheme:dark}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#171513;color:var(--cream);font-family:Inter,sans-serif;overflow-x:hidden}
+    button,input{font:inherit}button:focus-visible,input:focus-visible{outline:3px solid #d98669;outline-offset:3px}
+    .toolbar{position:fixed;z-index:30;top:16px;left:50%;width:min(calc(100% - 28px),780px);transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid rgba(245,239,228,.14);border-radius:12px;background:rgba(36,33,30,.94);box-shadow:0 12px 32px rgba(0,0,0,.2)}
+    .toolbar button{min-height:42px;padding:0 15px;border:1px solid rgba(245,239,228,.2);border-radius:9px;background:#302c28;color:var(--cream);cursor:pointer}.toolbar button[aria-pressed=true]{background:var(--clay);border-color:var(--clay)}
+    .toolbar label{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 12px;color:#d2c9bf;font-size:12px}.toolbar input{accent-color:var(--clay)}
+    .intro{min-height:72vh;display:grid;place-items:end center;padding:120px 24px 64px;text-align:center;background:linear-gradient(to bottom,#171513,#24211e)}
+    .intro div{max-width:780px}.intro p{margin:0 0 16px;color:#d0c4ba;font-size:12px;letter-spacing:.08em}.intro h1{margin:0;font:800 clamp(4rem,10vw,8rem)/.82 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:-.035em}.intro h1 em{display:block;color:#db8061;font-style:italic}.intro small{display:block;margin:28px auto 0;max-width:52ch;color:#c0b4aa;line-height:1.6}
+    .demo-shell{width:100%;background:#24211e;margin-inline:auto;border-inline:0 solid #171513}
+    .demo-shell.mobile{max-width:390px;border-inline-width:1px}
+    .assembly-track{height:var(--track);position:relative}.assembly-pin{position:sticky;top:0;height:100svh;min-height:640px;overflow:hidden;display:grid;align-items:center;background:radial-gradient(circle at 74% 44%,rgba(164,71,45,.14),transparent 34%),#24211e}
+    .assembly-grid{width:min(calc(100% - 48px),1200px);margin:auto;display:grid;grid-template-columns:minmax(0,.88fr) minmax(420px,1.12fr);gap:clamp(44px,8vw,110px);align-items:center}
+    .copy p{max-width:52ch;color:#cfc5bb;line-height:1.75}.copy h2{margin:0 0 22px;font:800 clamp(4rem,7vw,7rem)/.84 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:-.035em}.copy h2 em{display:block;color:#db8061;font-style:italic}.copy .hint{margin-top:32px;color:#b7aaa0;font-size:11px;letter-spacing:.06em}
+    .burger-stage{height:min(78svh,700px);position:relative;isolation:isolate}.burger-stage::after{content:'';position:absolute;left:14%;right:8%;bottom:12%;height:5%;background:rgba(0,0,0,.46);filter:blur(22px);border-radius:50%;z-index:-1}
+    .ingredient{--final:0px;position:absolute;left:50%;top:50%;width:min(94%,640px);aspect-ratio:1;display:grid;place-items:center;transform:translate3d(-50%,calc(-50% + var(--from)),0);opacity:.42;will-change:transform,opacity;filter:drop-shadow(0 16px 12px rgba(0,0,0,.18))}
+    .ingredient img{display:block;width:100%;height:100%;object-fit:contain}
+    .ingredient span{position:absolute;left:50%;top:8%;z-index:2;padding:7px 10px;border-radius:5px;background:rgba(36,33,30,.9);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;white-space:nowrap;transform:translateX(-50%)}
+    .bread-bottom{--from:220px}.patty{--from:-250px}.cheese{--from:-340px}.fillings{--from:-430px}.bread-top{--from:-520px}
+    .placeholder-top{position:absolute;left:9%;right:9%;top:22%;height:24%;display:grid;place-items:center;border:2px dashed #d78b58;border-radius:55% 55% 20% 20%;background:rgba(184,108,54,.24);color:#f4d5bf}
+    .progress{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);width:min(64%,420px);height:2px;background:rgba(245,239,228,.13)}.progress i{display:block;width:100%;height:100%;background:#c96748;transform:scaleX(var(--progress));transform-origin:left}
+    .mobile-note{display:none}.outro{min-height:70vh;display:grid;place-items:center;padding:80px 24px;text-align:center;background:var(--cream);color:var(--coal)}.outro h2{font:800 clamp(3rem,7vw,6rem)/.9 'Barlow Condensed',sans-serif;text-transform:uppercase;margin:0 0 18px}.outro p{max-width:58ch;color:#645b53;line-height:1.7}
+    .demo-shell.mobile .assembly-track{height:auto}.demo-shell.mobile .assembly-pin{position:relative;height:auto;min-height:780px;padding:110px 0 50px}.demo-shell.mobile .assembly-grid{grid-template-columns:1fr;width:calc(100% - 30px);gap:20px}.demo-shell.mobile .copy{text-align:center}.demo-shell.mobile .copy h2{font-size:3.6rem}.demo-shell.mobile .copy p{font-size:13px}.demo-shell.mobile .copy .hint{display:none}.demo-shell.mobile .burger-stage{height:390px}.demo-shell.mobile .ingredient{width:112%}.demo-shell.mobile .progress{display:none}.demo-shell.mobile .mobile-note{display:block;color:#b7aaa0;font-size:11px;letter-spacing:.06em}
+    @media(max-width:760px){.toolbar{top:8px}.assembly-track{height:auto}.assembly-pin{position:relative;height:auto;min-height:760px;padding:110px 0 54px}.assembly-grid{grid-template-columns:1fr;width:calc(100% - 30px);gap:16px}.copy{text-align:center}.copy h2{font-size:3.8rem}.copy .hint{display:none}.burger-stage{height:390px}.ingredient{width:min(94%,440px)}.progress{display:none}.mobile-note{display:block}.intro{min-height:62vh}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.assembly-track{height:auto!important}.assembly-pin{position:relative}.ingredient{transform:translate3d(-50%,-50%,0)!important;opacity:1!important;transition:none!important}.ingredient>span{opacity:0}.progress{display:none}}
+  </style>
+</head>
+<body>
+  <div class="toolbar" role="group" aria-label="Controles da demonstração">
+    <button id="repeat" type="button">Repetir animação</button>
+    <label>Velocidade <input id="speed" type="range" min="0.6" max="1.6" value="1" step="0.1"><output id="speedValue">1×</output></label>
+    <button id="desktop" type="button" aria-pressed="true">Desktop</button>
+    <button id="mobile" type="button" aria-pressed="false">Celular</button>
+  </div>
+  <header class="intro"><div><p>Protótipo isolado · nenhum arquivo do site foi alterado</p><h1>Monte a fome.<em>Camada por camada.</em></h1><small>Role a página para testar a montagem reversível. Os elementos coloridos são placeholders e serão substituídos por PNGs recortados após a aprovação do movimento.</small></div></header>
+  <main class="demo-shell" id="shell">
+    <section class="assembly-track" id="track" aria-label="Demonstração da montagem de um hambúrguer">
+      <div class="assembly-pin">
+        <div class="assembly-grid">
+          <div class="copy"><h2>Feito na ordem.<em>Pronto para você.</em></h2><p>A composição mantém o texto ao lado enquanto cada camada encontra seu lugar. No resultado final, os placeholders serão trocados por recortes reais do mesmo lanche.</p><p class="hint">Continue rolando para montar · role para cima para desmontar</p><p class="mobile-note">Montagem automática no celular</p></div>
+          <div class="burger-stage" id="stage">
+            <div class="ingredient bread-bottom" data-start="0" data-end=".24"><img src="demo-assets/pao-inferior.png" alt="Pão inferior"><span>Pão inferior</span></div>
+            <div class="ingredient patty" data-start=".16" data-end=".46"><img src="demo-assets/carnes.png" alt="Quatro carnes artesanais"><span>Quatro carnes</span></div>
+            <div class="ingredient cheese" data-start=".34" data-end=".63"><img src="demo-assets/queijo.png" alt="Camadas de queijo derretido"><span>Queijo</span></div>
+            <div class="ingredient fillings" data-start=".50" data-end=".78"><img src="demo-assets/cebola.png" alt="Cebola grelhada"><span>Cebola grelhada</span></div>
+            <div class="ingredient bread-top" data-start=".68" data-end="1"><div class="placeholder-top"><span>Pão superior · PNG necessário</span></div></div>
+          </div>
+        </div>
+        <div class="progress" aria-hidden="true"><i></i></div>
+      </div>
+    </section>
+  </main>
+  <footer class="outro"><div><h2>Fim da demonstração.</h2><p>Após aprovação, a mesma lógica pode ser aplicada à hero real sem dividir a fotografia existente em faixas ou misturar ingredientes entre camadas.</p></div></footer>
+  <script>
+    (()=>{
+      'use strict';
+      const shell=document.querySelector('#shell'),track=document.querySelector('#track'),stage=document.querySelector('#stage');
+      const layers=[...stage.querySelectorAll('.ingredient')],speed=document.querySelector('#speed'),speedValue=document.querySelector('#speedValue');
+      const desktop=document.querySelector('#desktop'),mobile=document.querySelector('#mobile'),repeat=document.querySelector('#repeat');
+      const reduce=matchMedia('(prefers-reduced-motion: reduce)');let velocity=1,raf=0,mobilePlayed=false,animations=[];
+      const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));const smooth=t=>t*t*(3-2*t);
+      function desktopMode(){return !shell.classList.contains('mobile')&&innerWidth>760}
+      function paint(){raf=0;if(reduce.matches){layers.forEach(el=>{el.style.transform='translate3d(-50%,-50%,0)';el.style.opacity='1'});return}
+        if(!desktopMode())return;const r=track.getBoundingClientRect(),travel=track.offsetHeight-innerHeight;const raw=travel>0?clamp(-r.top/travel):0;const p=clamp(raw*velocity);document.documentElement.style.setProperty('--progress',p);
+        layers.forEach(el=>{const a=+el.dataset.start,b=+el.dataset.end,local=smooth(clamp((p-a)/(b-a)));const from=parseFloat(getComputedStyle(el).getPropertyValue('--from'));const settle=local>.84?Math.sin((local-.84)/.16*Math.PI)*4:0;el.style.transform=`translate3d(-50%,calc(-50% + ${from*(1-local)+settle}px),0)`;el.style.opacity=String(.42+.58*local);const label=el.querySelector(':scope > span');if(label)label.style.opacity=String(1-local)});
+      }
+      const schedule=()=>{if(!raf)raf=requestAnimationFrame(paint)};
+      function playMobile(force=false){if(reduce.matches||desktopMode()||mobilePlayed&&!force)return;mobilePlayed=true;animations.forEach(a=>a.cancel());animations=[];layers.forEach((el,i)=>{const from=parseFloat(getComputedStyle(el).getPropertyValue('--from'));const a=el.animate([{transform:`translate3d(-50%,calc(-50% + ${from}px),0)`,opacity:.42},{offset:.86,transform:'translate3d(-50%,calc(-50% - 3px),0)',opacity:1},{transform:'translate3d(-50%,-50%,0)',opacity:1}],{duration:720/velocity,delay:i*145/velocity,easing:'cubic-bezier(.16,1,.3,1)',fill:'forwards'});animations.push(a);const label=el.querySelector(':scope > span');if(label)label.animate([{opacity:1},{opacity:0}],{duration:420/velocity,delay:i*145/velocity,fill:'forwards'})})}
+      const observer=new IntersectionObserver(([entry])=>{if(entry.isIntersecting)playMobile()},{threshold:.25});observer.observe(track);
+      speed.addEventListener('input',()=>{velocity=+speed.value;speedValue.value=velocity.toFixed(1).replace('.0','')+'×';schedule()});
+      function setMode(isMobile){shell.classList.toggle('mobile',isMobile);desktop.setAttribute('aria-pressed',String(!isMobile));mobile.setAttribute('aria-pressed',String(isMobile));animations.forEach(a=>a.cancel());animations=[];mobilePlayed=false;requestAnimationFrame(()=>{isMobile?playMobile(true):paint()})}
+      desktop.addEventListener('click',()=>setMode(false));mobile.addEventListener('click',()=>setMode(true));
+      repeat.addEventListener('click',()=>{if(desktopMode()){scrollTo({top:track.offsetTop-8,behavior:reduce.matches?'auto':'smooth'})}else{mobilePlayed=false;playMobile(true)}});
+      addEventListener('scroll',schedule,{passive:true});addEventListener('resize',schedule);reduce.addEventListener('change',schedule);paint();
+    })();
+  </script>
+</body>
+</html>

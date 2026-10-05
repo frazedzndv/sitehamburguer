@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# Capturas locais de validação
+hero-check*.png
+hero-desktop-*.png
+hero-mobile-*.png
+
+# Arquivos do sistema e editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
