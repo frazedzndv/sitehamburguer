@@ -2,7 +2,7 @@
 
 ## Direção
 
-**Cozinha aberta / passa-pratos editorial.** A interface mostra o cardápio como uma cozinha bem organizada: títulos grandes funcionam como chamadas, linhas e etiquetas orientam o olhar e cada produto ocupa uma ficha clara. O acabamento é contemporâneo, acolhedor e honesto.
+**Cozinha aberta / passa-pratos editorial.** A interface funciona como a fachada da marca: o produto ocupa o palco, títulos grandes criam ritmo e composições editoriais conduzem do desejo ao pedido. O acabamento é contemporâneo, acolhedor, premium e honesto.
 
 ## Princípios visuais
 
@@ -26,13 +26,13 @@
 
 ## Sistema de interação
 
-- Busca e categorias permanecem próximas ao início do cardápio.
-- O estado ativo é comunicado por forma, contraste e texto, não apenas cor.
-- Cards usam rodapé alinhado com preço e ação.
+- CTAs de pedido aparecem nos principais momentos de decisão e sempre levam ao delivery externo.
+- Produtos em destaque usam composição editorial; fotografias ausentes recebem estados pendentes honestos.
+- No mobile, o CTA fixo aparece depois da primeira viewport e respeita a safe area.
 - Movimentos são breves e funcionais; `prefers-reduced-motion` desativa transições e entradas.
 
 ## Adaptação
 
-- Desktop: hero em duas colunas e catálogo em três.
-- Tablet: catálogo em duas colunas.
-- Mobile: fluxo único, filtros em faixa horizontal e navegação em painel acessível.
+- Desktop: hero em duas colunas, produtos em faixas editoriais e amplo espaço negativo.
+- Tablet: composições passam para fluxo único sem perder escala visual.
+- Mobile: produto grande, texto curto, navegação compacta e pedido sempre acessível.

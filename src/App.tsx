@@ -1,12 +1,34 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react'
-import { ArrowRight, ExternalLink, Menu, Search, X } from 'lucide-react'
-import { categories, products, type Category, type Product } from './data/menu'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowRight, ExternalLink, Flame, Menu, ShieldCheck, X } from 'lucide-react'
+import { products } from './data/menu'
 import heroBurger from './assets/hero-cheeseburger-triplo.png'
 import rusticBurger from './assets/hamburguer-rustico.png'
 import assemblyVideo from './assets/burger-assembly.mp4'
 
-const ORDER_URL = 'https://instadelivery.com.br/willsanduiches'
+const links = {
+  delivery: 'https://instadelivery.com.br/willsanduiches',
+  whatsapp: '',
+  instagram: '',
+  maps: '',
+  products: {} as Record<string, string>,
+}
+
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+const favoriteNames = ['Triplo Cheese', 'Monster Bacon', 'Double Melt']
+
+declare global {
+  interface Window { dataLayer?: Array<Record<string, unknown>> }
+}
+
+function track(event: string, detail: Record<string, unknown> = {}) {
+  window.dataLayer?.push({ event, ...detail })
+  window.dispatchEvent(new CustomEvent('will:conversion', { detail: { event, ...detail } }))
+}
+
+function OrderLink({ event, className = 'button', children, product }: { event: string; className?: string; children: React.ReactNode; product?: string }) {
+  const href = product ? links.products[product] || links.delivery : links.delivery
+  return <a className={className} href={href} target="_blank" rel="noreferrer" data-conversion-event={event} onClick={() => track(event, product ? { product } : {})}>{children}</a>
+}
 
 function Brand() {
   return <a className="brand" href="#inicio" aria-label="Will Sanduíches — início"><span>W</span><strong>Will<small>Sanduíches</small></strong></a>
@@ -14,45 +36,35 @@ function Brand() {
 
 function Header() {
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 30)
     const close = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
     window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
+    return () => { window.removeEventListener('scroll', update); window.removeEventListener('keydown', close) }
   }, [])
-  return <header className="site-header">
+  return <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
     <div className="container nav-wrap">
       <Brand />
       <button className="menu-toggle" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="main-nav" aria-label={open ? 'Fechar menu' : 'Abrir menu'}>{open ? <X /> : <Menu />}</button>
       <nav id="main-nav" className={open ? 'nav open' : 'nav'} aria-label="Navegação principal">
-        <a href="#inicio" onClick={() => setOpen(false)}>Início</a>
-        <a href="#cardapio" onClick={() => setOpen(false)}>Cardápio</a>
-        <a href="#sobre" onClick={() => setOpen(false)}>Sobre</a>
-        <a className="button button-small" href={ORDER_URL} target="_blank" rel="noreferrer">Fazer pedido <ExternalLink size={16} /></a>
+        <a href="#inicio" onClick={() => setOpen(false)}>Início</a><a href="#favoritos" onClick={() => setOpen(false)}>Favoritos</a><a href="#sobre" onClick={() => setOpen(false)}>Sobre</a><a href="#avaliacoes" onClick={() => setOpen(false)}>Avaliações</a><a href="#contato" onClick={() => setOpen(false)}>Contato</a>
+        <OrderLink event="delivery_click_header" className="button button-small">Pedir agora <ArrowRight size={17} /></OrderLink>
       </nav>
     </div>
   </header>
 }
 
-type HeroScrubController = { setProgress: (progress: number) => void }
-
-function HeroVisual({ controllerRef }: { controllerRef: MutableRefObject<HeroScrubController | null> }) {
+function HeroAssembly() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
-  const rangeRef = useRef<HTMLInputElement>(null)
-  const targetRef = useRef(0)
-  const progressRef = useRef(0)
-  const durationRef = useRef(0)
-  const currentRef = useRef(0)
   const frameRef = useRef(0)
-  const isVisibleRef = useRef(false)
-  const mobilePlayedRef = useRef(false)
-  const setProgress = (progress: number) => {
-    const normalized = Math.min(1, Math.max(0, progress))
-    progressRef.current = normalized
-    targetRef.current = normalized * durationRef.current
-    if (rangeRef.current) rangeRef.current.value = String(Math.round(normalized * 100))
-  }
+  const durationRef = useRef(0)
+  const seekToRef = useRef(0)
+  const seekAtRef = useRef(0)
   useEffect(() => {
     const video = videoRef.current
     const canvas = canvasRef.current
@@ -60,18 +72,12 @@ function HeroVisual({ controllerRef }: { controllerRef: MutableRefObject<HeroScr
     if (!video || !canvas || !surface) return
     let mounted = true
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const coarsePointer = window.matchMedia('(hover: none), (pointer: coarse)').matches
-    const clampTime = (value: number) => Math.min(Math.max(0, durationRef.current - .04), Math.max(0, value))
-    const renderTransparentFrame = () => {
+    const render = () => {
       if (!video.videoWidth || !video.videoHeight) return
-      const maxWidth = 960
-      const scale = Math.min(1, maxWidth / video.videoWidth)
+      const scale = Math.min(1, 960 / video.videoWidth)
       const width = Math.round(video.videoWidth * scale)
       const height = Math.round(video.videoHeight * scale)
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width
-        canvas.height = height
-      }
+      if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height }
       const context = canvas.getContext('2d', { willReadFrequently: true })
       if (!context) return
       context.clearRect(0, 0, width, height)
@@ -79,18 +85,12 @@ function HeroVisual({ controllerRef }: { controllerRef: MutableRefObject<HeroScr
       const frame = context.getImageData(0, 0, width, height)
       const pixels = frame.data
       for (let index = 0; index < pixels.length; index += 4) {
-        const red = pixels[index]
-        const green = pixels[index + 1]
-        const blue = pixels[index + 2]
+        const red = pixels[index], green = pixels[index + 1], blue = pixels[index + 2]
         const tealDistance = Math.min(green - red, blue - red)
-        const isChromaHue = green > 18 && green >= blue * .76 && tealDistance > 2
-        if (isChromaHue) {
+        if (green > 18 && green >= blue * .76 && tealDistance > 2) {
           const alpha = 1 - Math.min(1, Math.max(0, (tealDistance - 2) / 18))
           pixels[index + 3] = Math.round(255 * alpha)
-          if (alpha > 0) {
-            pixels[index + 1] = Math.min(green, red * 1.06)
-            pixels[index + 2] = Math.min(blue, red * 1.06)
-          }
+          if (alpha > 0) { pixels[index + 1] = Math.min(green, red * 1.06); pixels[index + 2] = Math.min(blue, red * 1.06) }
         } else if (green > 34 && green > red * 1.02 && blue > red * .45) {
           const edgeStrength = Math.min(1, (green - red) / 24)
           pixels[index + 3] = Math.round(255 * (1 - edgeStrength * .42))
@@ -101,221 +101,150 @@ function HeroVisual({ controllerRef }: { controllerRef: MutableRefObject<HeroScr
       context.putImageData(frame, 0, 0)
       surface.classList.add('is-rendered')
     }
-    const maybePlayMobile = () => {
-      if (coarsePointer && !reducedMotion && isVisibleRef.current && durationRef.current && !mobilePlayedRef.current) {
-        mobilePlayedRef.current = true
-        setProgress(1)
+    const animate = () => {
+      if (!mounted) return
+      const gap = seekToRef.current - seekAtRef.current
+      if (durationRef.current && Math.abs(gap) > .0008) {
+        seekAtRef.current += gap * .115
+        if (video.readyState >= 2 && !video.seeking) {
+          try { video.currentTime = seekAtRef.current } catch { /* Retry on the next frame. */ }
+        }
       }
+      frameRef.current = requestAnimationFrame(animate)
+    }
+    const readScroll = () => {
+      const hero = surface.closest('.hero') as HTMLElement | null
+      if (!hero || !durationRef.current) return
+      const max = Math.max(1, hero.offsetHeight - window.innerHeight)
+      const progress = Math.min(1, Math.max(0, -hero.getBoundingClientRect().top / max))
+      seekToRef.current = progress * Math.max(0, durationRef.current - .04)
+      hero.style.setProperty('--hero-progress', progress.toFixed(4))
     }
     const metadata = () => {
       durationRef.current = Number.isFinite(video.duration) ? video.duration : 0
       video.pause()
-      currentRef.current = 0
-      targetRef.current = progressRef.current * durationRef.current
-      try { video.currentTime = .001 } catch { /* The first decoded frame remains visible. */ }
-      maybePlayMobile()
+      if (reducedMotion) seekToRef.current = Math.max(0, durationRef.current - .04)
+      readScroll()
+      seekAtRef.current = seekToRef.current
+      try { video.currentTime = seekAtRef.current } catch { /* Initial frame will render on loadeddata. */ }
     }
-    const frame = () => {
-      if (!mounted) return
-      const gap = targetRef.current - currentRef.current
-      if (durationRef.current && Math.abs(gap) > .003) {
-        currentRef.current = clampTime(currentRef.current + gap * .14)
-        if (video.readyState >= 2 && !video.seeking) {
-          try { video.currentTime = currentRef.current } catch { /* Wait for the next decoded frame. */ }
-        }
-      }
-      frameRef.current = requestAnimationFrame(frame)
+    const unlock = () => {
+      const play = video.play()
+      if (play) play.then(() => video.pause()).catch(() => undefined)
     }
     video.addEventListener('loadedmetadata', metadata)
-    video.addEventListener('loadeddata', renderTransparentFrame)
-    video.addEventListener('seeked', renderTransparentFrame)
+    video.addEventListener('loadeddata', render)
+    video.addEventListener('seeked', render)
+    window.addEventListener('scroll', readScroll, { passive: true })
+    window.addEventListener('resize', readScroll)
+    ;['touchstart', 'pointerdown', 'wheel', 'keydown'].forEach(event => window.addEventListener(event, unlock, { once: true, passive: true }))
     if (video.readyState >= 1) metadata()
-    if (video.readyState >= 2) renderTransparentFrame()
-    const observer = new IntersectionObserver(([entry]) => {
-      isVisibleRef.current = entry.isIntersecting
-      if (entry.isIntersecting) maybePlayMobile()
-    }, { threshold: .35 })
-    observer.observe(surface)
-    frameRef.current = requestAnimationFrame(frame)
+    if (video.readyState >= 2) render()
+    frameRef.current = requestAnimationFrame(animate)
     return () => {
       mounted = false
       cancelAnimationFrame(frameRef.current)
-      observer.disconnect()
       video.removeEventListener('loadedmetadata', metadata)
-      video.removeEventListener('loadeddata', renderTransparentFrame)
-      video.removeEventListener('seeked', renderTransparentFrame)
+      video.removeEventListener('loadeddata', render)
+      video.removeEventListener('seeked', render)
+      window.removeEventListener('scroll', readScroll)
+      window.removeEventListener('resize', readScroll)
     }
   }, [])
-  useEffect(() => {
-    controllerRef.current = { setProgress }
-    return () => { controllerRef.current = null }
-  })
-  return <div className="hero-visual video-scrubber">
-    <div ref={surfaceRef} className="video-scrubber__surface">
-      <img className="hero-video-poster" src={heroBurger} width="1254" height="1254" alt="" aria-hidden="true" />
-      <video ref={videoRef} className="hero-assembly-video" src={assemblyVideo} muted playsInline preload="auto" disablePictureInPicture aria-hidden="true" tabIndex={-1} />
-      <canvas ref={canvasRef} className="hero-assembly-canvas" role="img" aria-label="Montagem interativa de um hambúrguer" />
-      <img className="hero-static-fallback" src={heroBurger} width="1254" height="1254" alt="Cheeseburger triplo montado com queijo derretido e cebola grelhada" />
-    </div>
-    <input className="video-progress-sr" ref={rangeRef} type="range" min="0" max="100" defaultValue="0" aria-label="Progresso da montagem do hambúrguer" onInput={(event) => setProgress(Number(event.currentTarget.value) / 100)} />
-  </div>
+  return <div className="hero-visual video-scrubber"><div ref={surfaceRef} className="video-scrubber__surface">
+    <video ref={videoRef} className="hero-assembly-video" src={assemblyVideo} muted playsInline preload="auto" disablePictureInPicture aria-hidden="true" tabIndex={-1} />
+    <canvas ref={canvasRef} className="hero-assembly-canvas" role="img" aria-label="Montagem animada de um hambúrguer artesanal" />
+  </div></div>
 }
 
 function Hero() {
-  const heroRef = useRef<HTMLElement>(null)
-  const scrubController = useRef<HeroScrubController | null>(null)
-  const wheelProgressRef = useRef(0)
-  useEffect(() => {
-    const hero = heroRef.current
-    if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const desktop = window.matchMedia('(min-width: 901px) and (hover: hover) and (pointer: fine)')
-    const handleWheel = (event: WheelEvent) => {
-      if (!desktop.matches || event.ctrlKey) return
-      const rect = hero.getBoundingClientRect()
-      const heroIsActive = rect.top <= 82 && rect.bottom >= window.innerHeight * .72
-      if (!heroIsActive) return
-      const progress = wheelProgressRef.current
-      const shouldCapture = (event.deltaY > 0 && progress < 1) || (event.deltaY < 0 && progress > 0)
-      if (!shouldCapture) return
-      event.preventDefault()
-      const unit = event.deltaMode === 1 ? 18 : event.deltaMode === 2 ? window.innerHeight : 1
-      const next = Math.min(1, Math.max(0, progress + (event.deltaY * unit) / 820))
-      wheelProgressRef.current = next
-      scrubController.current?.setProgress(next)
-      hero.style.setProperty('--hero-scroll', next.toFixed(4))
-    }
-    window.addEventListener('wheel', handleWheel, { passive: false })
-    return () => {
-      window.removeEventListener('wheel', handleWheel)
-    }
-  }, [])
-  return <section ref={heroRef} id="inicio" className="hero">
-    <div className="hero-portal-word" aria-hidden="true">WILL</div>
+  return <section id="inicio" className="hero">
+    <div className="hero-word" aria-hidden="true">WILL</div>
     <div className="container hero-grid">
-      <div className="hero-copy reveal">
-        <p className="eyebrow"><span /> Will Sanduíches · Juiz de Fora</p>
-        <h1>Seu próximo favorito <em>começa aqui.</em></h1>
-        <p className="hero-lead">Conheça os sanduíches do Will e escolha o seu favorito.</p>
-        <div className="hero-actions">
-          <a className="button" href="#cardapio">Ver cardápio <ArrowRight size={18} /></a>
-          <a className="text-link" href={ORDER_URL} target="_blank" rel="noreferrer">Fazer pedido <ExternalLink size={16} /></a>
-        </div>
+      <div className="hero-copy">
+        <h1>Não é só<br /><em>um hambúrguer.</em></h1>
+        <p>É artesanal. É feito na hora. É do jeito que tem que ser.</p>
+        <div className="hero-actions"><OrderLink event="delivery_click_hero">Pedir agora <ArrowRight size={18} /></OrderLink><a className="text-link" href="#favoritos">Conhecer os favoritos</a></div>
+        <div className="hero-trust" aria-label="Diferenciais"><span><Flame size={16} /> Feito na hora</span><span><ShieldCheck size={16} /> Pedido concluído no delivery</span></div>
       </div>
-      <HeroVisual controllerRef={scrubController} />
-    </div>
-    <div className="ticker" aria-hidden="true"><span>49 escolhas</span><i /> <span>7 categorias</span><i /> <span>pedido no InstaDelivery</span></div>
-  </section>
-}
-
-function ProductVisual({ product, index }: { product: Product; index: number }) {
-  const short = product.category === 'Bebidas' ? 'BEBIDA' : product.category === 'Sobremesas' ? 'DOCE' : product.category === 'Molho extra' ? 'EXTRA' : 'WILL'
-  return <div className={`product-media media-${index % 5}`} aria-label={`Espaço reservado para foto de ${product.name}`} role="img">
-    <span>{String(index + 1).padStart(2, '0')}</span><strong>{short}</strong><i aria-hidden="true" />
-    <small>foto em breve</small>
-  </div>
-}
-
-function ProductCard({ product, index }: { product: Product; index: number }) {
-  const mayHaveOptions = !['Bebidas', 'Sobremesas', 'Molho extra'].includes(product.category)
-  return <article className="product-card" style={{ '--reveal-delay': `${(index % 3) * 65}ms` } as CSSProperties}>
-    <ProductVisual product={product} index={index} />
-    <div className="product-body">
-      <p className="product-category">{product.category}</p>
-      <h3>{product.name}</h3>
-      {product.description && <p className="product-description">{product.description}</p>}
-      <div className="product-footer">
-        <div><small>{mayHaveOptions ? 'A partir de' : 'Preço'}</small><strong>{money.format(product.price)}</strong></div>
-        <a href={ORDER_URL} target="_blank" rel="noreferrer" aria-label={`Pedir ${product.name} no InstaDelivery`}>Pedir <ExternalLink size={14} /></a>
-      </div>
-    </div>
-  </article>
-}
-
-function MenuSection() {
-  const [category, setCategory] = useState<Category | 'Todos'>('Todos')
-  const [query, setQuery] = useState('')
-  const normalized = query.trim().toLocaleLowerCase('pt-BR')
-  const filtered = useMemo(() => products.filter(product => {
-    const inCategory = category === 'Todos' || product.category === category
-    const haystack = `${product.name} ${product.description ?? ''}`.toLocaleLowerCase('pt-BR')
-    return inCategory && (!normalized || haystack.includes(normalized))
-  }), [category, normalized])
-  const clear = () => { setCategory('Todos'); setQuery('') }
-  return <section id="cardapio" className="menu-section">
-    <div className="container">
-      <div className="section-heading reveal"><div><p className="eyebrow"><span /> Cardápio completo</p><h2>Escolha sem pressa.<br /><em>Peça sem complicação.</em></h2></div><p>Use a busca ou selecione uma categoria. O pedido é concluído com segurança no InstaDelivery.</p></div>
-      <div className="menu-tools reveal">
-        <label className="search-field"><span className="sr-only">Buscar no cardápio</span><Search size={20} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Busque por nome ou ingrediente" /><kbd>{filtered.length}</kbd></label>
-        <div className="filters" aria-label="Filtrar produtos por categoria">
-          {(['Todos', ...categories] as const).map(item => <button key={item} className={category === item ? 'active' : ''} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
-        </div>
-      </div>
-      <p className="results" aria-live="polite">{filtered.length} {filtered.length === 1 ? 'item encontrado' : 'itens encontrados'}{category !== 'Todos' ? ` em ${category}` : ''}</p>
-      {filtered.length ? <div className="product-grid">{filtered.map((product) => <ProductCard key={`${product.category}-${product.name}`} product={product} index={products.indexOf(product)} />)}</div> : <div className="empty-state"><span>0</span><h3>Nenhum lanche por aqui.</h3><p>Tente outro nome, ingrediente ou volte a ver o cardápio completo.</p><button className="button" onClick={clear}>Limpar busca</button></div>}
+      <HeroAssembly />
     </div>
   </section>
 }
 
-function About() {
-  const sectionRef = useRef<HTMLElement>(null)
-  const [active, setActive] = useState(false)
-  const [entered, setEntered] = useState(false)
-  useEffect(() => {
-    const section = sectionRef.current
-    if (!section) return
-    const observer = new IntersectionObserver(([entry]) => {
-      setActive(entry.isIntersecting)
-      if (entry.isIntersecting) setEntered(true)
-    }, { threshold: .18 })
-    observer.observe(section)
-    return () => observer.disconnect()
-  }, [])
-  return <section ref={sectionRef} id="sobre" className={`about about-motion${active ? ' is-active' : ''}${entered ? ' has-entered' : ''}`}><div className="container about-grid">
-    <div className="about-visual" onPointerMove={(event) => {
-      if (event.pointerType !== 'mouse') return
-      const rect = event.currentTarget.getBoundingClientRect()
-      event.currentTarget.style.setProperty('--about-x', `${(((event.clientX - rect.left) / rect.width) - .5) * 16}px`)
-      event.currentTarget.style.setProperty('--about-y', `${(((event.clientY - rect.top) / rect.height) - .5) * 16}px`)
-    }} onPointerLeave={(event) => {
-      event.currentTarget.style.setProperty('--about-x', '0px')
-      event.currentTarget.style.setProperty('--about-y', '0px')
-    }}>
-      <span className="about-word" aria-hidden="true">WILL</span>
-      <div className="about-image-entry"><div className="about-image-parallax"><div className="about-image-float">
-        <img src={rusticBurger} width="1254" height="1254" loading="lazy" alt="Hambúrguer rústico artesanal com queijo, bacon e cebola grelhada" />
-      </div></div></div>
-    </div>
-    <div className="about-copy"><p className="eyebrow about-copy-item"><span /> Sobre o Will</p><h2 className="about-copy-item">Do cardápio<br />para a sua mesa.</h2><p className="about-copy-item">A Will Sanduíches reúne opções artesanais, clássicos, bebidas, sobremesas e molhos extras. Escolha o que combina com a sua fome e siga para o InstaDelivery para consultar as modalidades disponíveis de delivery ou retirada.</p><a className="text-link light about-copy-item" href={ORDER_URL} target="_blank" rel="noreferrer">Abrir cardápio de pedidos <ExternalLink size={16} /></a></div>
+function Favorites() {
+  const favorites = useMemo(() => favoriteNames.map(name => products.find(product => product.name === name)).filter(Boolean), [])
+  return <section id="favoritos" className="favorites section"><div className="container">
+    <div className="section-intro"><h2>Os favoritos<br /><em>da casa.</em></h2><p>Os que fazem o pessoal voltar. Três escolhas reais do cardápio, sem transformar esta página em outro delivery.</p></div>
+    <div className="favorite-list">{favorites.map((product, index) => product && <article className="favorite-item" key={product.name}>
+      <div className={`favorite-media media-${index}`}>{index === 0 ? <img src={heroBurger} alt="Triplo Cheese da Will Sanduíches" loading="lazy" /> : <div className="photo-pending" aria-label={`Fotografia de ${product.name} ainda não fornecida`}><span>W</span><small>Foto oficial em breve</small></div>}</div>
+      <div className="favorite-copy"><p>{product.category}</p><h3>{product.name}</h3><div className="favorite-description">{product.description}</div><strong>{money.format(product.price)}</strong><OrderLink event="delivery_click_product" className="text-link" product={product.name}>Quero esse <ExternalLink size={15} /></OrderLink></div>
+    </article>)}</div>
   </div></section>
 }
 
+function BrandStory() {
+  return <section id="sobre" className="brand-story section"><div className="container story-grid">
+    <div className="story-image"><img src={rusticBurger} width="1254" height="1254" loading="lazy" alt="Hambúrguer artesanal com queijo, bacon e cebola grelhada" /></div>
+    <div className="story-copy"><h2>Não fazemos<br />fast food.<br /><em>Fazemos hambúrguer.</em></h2><p>Carne preparada do jeito certo. Ingredientes selecionados. Montado na hora. Sem complicação.</p><OrderLink event="delivery_click_story" className="text-link light">Ver cardápio no delivery <ExternalLink size={16} /></OrderLink></div>
+  </div></section>
+}
+
+const process = [
+  ['01', 'Preparado', 'O pedido entra em preparo.'],
+  ['02', 'Montado', 'O hambúrguer ganha forma.'],
+  ['03', 'Embalado', 'Pronto para seguir viagem.'],
+  ['04', 'Entregue', 'Do nosso fogo para a sua casa.'],
+]
+
+function Process() {
+  return <section className="process section"><div className="container"><div className="section-intro"><h2>Do nosso fogo<br /><em>para sua casa.</em></h2><p>Uma sequência curta que mostra o cuidado entre o preparo e a entrega.</p></div><ol>{process.map(([number, title, text]) => <li key={number}><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></li>)}</ol></div></section>
+}
+
+function DesireBanner() {
+  return <section className="desire"><img src={heroBurger} alt="Hambúrguer artesanal da Will Sanduíches em destaque" loading="lazy" /><div className="container desire-copy"><h2>Você ainda<br />tá só olhando?</h2><OrderLink event="delivery_click_banner" className="button button-light">Pedir agora <ArrowRight size={18} /></OrderLink></div></section>
+}
+
+function SocialProof() {
+  return <section id="avaliacoes" className="proof section"><div className="container proof-grid"><div><h2>Quem prova,<br /><em>entende.</em></h2><p>Avaliações verificadas serão publicadas aqui assim que forem fornecidas pela marca ou integradas ao Google.</p></div><div className="proof-pending"><span aria-hidden="true">“</span><p>Espaço preparado para depoimentos reais, com nota, texto, autoria e origem.</p><small>Conteúdo pendente · não publicado como prova social</small></div></div></section>
+}
+
+function Contact() {
+  return <section id="contato" className="contact section"><div className="container contact-grid"><div><h2>Onde a gente tá.</h2><p>Endereço, horário e WhatsApp ainda não foram fornecidos.</p></div><div className="contact-status"><span>Atendimento e retirada</span><strong>Consulte as modalidades disponíveis no delivery oficial.</strong><OrderLink event="delivery_click_contact" className="text-link">Abrir delivery <ExternalLink size={16} /></OrderLink></div></div></section>
+}
+
 function FinalCta() {
-  return <section className="final-cta"><div className="container"><p>Seu pedido está a um clique</p><h2>Já escolheu<br /><em>o seu?</em></h2><a className="button button-light" href={ORDER_URL} target="_blank" rel="noreferrer">Fazer pedido <ExternalLink size={18} /></a></div></section>
+  return <section className="final-cta"><div className="container"><h2>Bateu<br /><em>a fome?</em></h2><p>Seu próximo hambúrguer está a poucos cliques.</p><OrderLink event="delivery_click_final" className="button button-light">Pedir agora <ArrowRight size={20} /></OrderLink></div></section>
 }
 
 function Footer() {
-  return <footer><div className="container footer-grid"><Brand /><nav aria-label="Navegação do rodapé"><a href="#inicio">Início</a><a href="#cardapio">Cardápio</a><a href="#sobre">Sobre</a></nav><a className="footer-order" href={ORDER_URL} target="_blank" rel="noreferrer">Cardápio de pedidos <ExternalLink size={15} /></a></div><div className="container footer-bottom"><p>© {new Date().getFullYear()} Will Sanduíches</p><p>Juiz de Fora · MG</p></div></footer>
+  return <footer><div className="container footer-grid"><Brand /><nav aria-label="Links do rodapé"><a href="#favoritos">Favoritos</a><a href="#sobre">Sobre</a><OrderLink event="delivery_click_footer" className="footer-link">Delivery <ExternalLink size={14} /></OrderLink></nav></div><div className="container footer-bottom"><p>© {new Date().getFullYear()} Will Sanduíches</p><p>Juiz de Fora · MG</p></div></footer>
+}
+
+function MobileOrder() {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => { const update = () => setVisible(window.scrollY > window.innerHeight * .72); update(); window.addEventListener('scroll', update, { passive: true }); return () => window.removeEventListener('scroll', update) }, [])
+  return <div className={`mobile-order${visible ? ' visible' : ''}`}><OrderLink event="delivery_click_mobile_fixed">Pedir agora <ArrowRight size={18} /></OrderLink></div>
 }
 
 export default function App() {
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => entries.forEach(entry => {
-      if (!entry.isIntersecting) return
-      entry.target.classList.add('visible')
-      observer.unobserve(entry.target)
-    }), { threshold: .08, rootMargin: '0px 0px -5% 0px' })
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el))
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduced) return
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('is-visible')), { threshold: .12 })
+    document.querySelectorAll('.section, .desire').forEach(element => observer.observe(element))
     let frame = 0
-    const updateProgress = () => {
-      frame = 0
-      const max = document.documentElement.scrollHeight - window.innerHeight
-      document.documentElement.style.setProperty('--page-progress', String(max > 0 ? window.scrollY / max : 0))
+    const progress = () => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        const max = document.documentElement.scrollHeight - window.innerHeight
+        document.documentElement.style.setProperty('--page-progress', String(max > 0 ? window.scrollY / max : 0))
+      })
     }
-    const schedule = () => { if (!frame) frame = requestAnimationFrame(updateProgress) }
-    updateProgress()
-    window.addEventListener('scroll', schedule, { passive: true })
-    window.addEventListener('resize', schedule)
-    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule) }
+    progress()
+    window.addEventListener('scroll', progress, { passive: true })
+    return () => { observer.disconnect(); window.removeEventListener('scroll', progress); cancelAnimationFrame(frame) }
   }, [])
-  return <><div className="page-progress" aria-hidden="true" /><Header /><main><Hero /><MenuSection /><About /><FinalCta /></main><Footer /></>
+  return <><i className="page-progress" aria-hidden="true" /><Header /><main><Hero /><Favorites /><BrandStory /><Process /><DesireBanner /><SocialProof /><Contact /><FinalCta /></main><Footer /><MobileOrder /></>
 }

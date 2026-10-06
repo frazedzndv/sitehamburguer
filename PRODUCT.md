@@ -16,7 +16,7 @@ Clientes da Will Sanduíches, em Juiz de Fora, que desejam conhecer o cardápio 
 
 ## Product Purpose
 
-Apresentar os 49 produtos com clareza, permitir busca e filtro por categoria e encaminhar o cliente ao InstaDelivery para concluir o pedido.
+Funcionar como a fachada digital da Will Sanduíches: gerar desejo, apresentar a marca e seus favoritos, construir confiança e encaminhar o visitante ao InstaDelivery para concluir o pedido.
 
 ## Positioning
 
@@ -24,12 +24,12 @@ Uma vitrine digital direta e cuidadosa do cardápio real da Will Sanduíches, se
 
 ## Operating Context
 
-O visitante explora o cardápio no celular ou desktop, filtra ou pesquisa por nome e ingrediente e conclui o pedido em https://instadelivery.com.br/willsanduiches.
+O visitante chega principalmente pelo celular, conhece a marca e alguns produtos em destaque e conclui o pedido em https://instadelivery.com.br/willsanduiches.
 
 ## Capabilities and Constraints
 
-- Sete categorias e 49 produtos, preservados a partir de `cardapio-will-sanduiches.md`.
-- Busca por nome ou ingrediente e filtros por categoria.
+- Sete categorias e 49 produtos continuam preservados em `cardapio-will-sanduiches.md`, mas a landing exibe apenas três favoritos reais.
+- A landing não replica busca, filtros, adicionais, carrinho ou pagamento.
 - O site não implementa checkout nem personalização própria dos pedidos.
 - Informações de endereço, horário e redes sociais não foram fornecidas e não devem ser inventadas.
 - As opções de adicionais são apenas notas de implementação e não aparecem na interface.
@@ -48,7 +48,7 @@ Marca Will Sanduíches. Linguagem acolhedora, contemporânea e objetiva. A palet
 ## Product Principles
 
 - Fidelidade absoluta ao cardápio fornecido.
-- Caminho curto entre descoberta e pedido.
+- Caminho curto entre desejo, confiança e pedido.
 - Imagens honestas, sem representar produtos reais com fotos genéricas.
 - Leitura confortável e controles acessíveis em qualquer tamanho de tela.
 
