@@ -3,7 +3,6 @@ import { ArrowRight, ExternalLink, Flame, Menu, ShieldCheck, X } from 'lucide-re
 import { products } from './data/menu'
 import heroBurger from './assets/hero-cheeseburger-triplo.png'
 import rusticBurger from './assets/hamburguer-rustico.png'
-import assemblyVideo from './assets/burger-assembly.mp4'
 
 const links = {
   delivery: 'https://instadelivery.com.br/willsanduiches',
@@ -37,18 +36,25 @@ function Brand() {
 function Header() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const toggleRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 30)
-    const close = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false)
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setOpen(false)
+      toggleRef.current?.focus()
+    }
+    const closeAtDesktop = () => window.innerWidth >= 1024 && setOpen(false)
     update()
     window.addEventListener('scroll', update, { passive: true })
     window.addEventListener('keydown', close)
-    return () => { window.removeEventListener('scroll', update); window.removeEventListener('keydown', close) }
+    window.addEventListener('resize', closeAtDesktop)
+    return () => { window.removeEventListener('scroll', update); window.removeEventListener('keydown', close); window.removeEventListener('resize', closeAtDesktop) }
   }, [])
   return <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
     <div className="container nav-wrap">
       <Brand />
-      <button className="menu-toggle" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="main-nav" aria-label={open ? 'Fechar menu' : 'Abrir menu'}>{open ? <X /> : <Menu />}</button>
+      <button ref={toggleRef} type="button" className="menu-toggle" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="main-nav" aria-label={open ? 'Fechar menu' : 'Abrir menu'}>{open ? <X /> : <Menu />}</button>
       <nav id="main-nav" className={open ? 'nav open' : 'nav'} aria-label="Navegação principal">
         <a href="#inicio" onClick={() => setOpen(false)}>Início</a><a href="#favoritos" onClick={() => setOpen(false)}>Favoritos</a><a href="#sobre" onClick={() => setOpen(false)}>Sobre</a>
         <OrderLink event="delivery_click_header" className="button button-small">Pedir agora <ArrowRight size={17} /></OrderLink>
@@ -57,169 +63,17 @@ function Header() {
   </header>
 }
 
-function HeroAssembly() {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const surfaceRef = useRef<HTMLDivElement>(null)
-  const frameRef = useRef(0)
-  useEffect(() => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    const surface = surfaceRef.current
-    if (!video || !canvas || !surface) return
-    let mounted = true
-    let started = false
-    let attempting = false
-    let mobileIntent = false
-    let releaseTimer = 0
-    const isMobile = window.matchMedia('(max-width: 700px)').matches
-    if (!isMobile) document.body.classList.add('intro-lock')
-    const render = () => {
-      if (!video.videoWidth || !video.videoHeight) return
-      const processingWidth = window.innerWidth <= 900 ? 520 : 900
-      const scale = Math.min(1, processingWidth / video.videoWidth)
-      const width = Math.round(video.videoWidth * scale)
-      const height = Math.round(video.videoHeight * scale)
-      if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height }
-      const context = canvas.getContext('2d', { willReadFrequently: true })
-      if (!context) return
-      context.clearRect(0, 0, width, height)
-      context.drawImage(video, 0, 0, width, height)
-      const frame = context.getImageData(0, 0, width, height)
-      const pixels = frame.data
-      for (let index = 0; index < pixels.length; index += 4) {
-        const red = pixels[index], green = pixels[index + 1], blue = pixels[index + 2]
-        const tealDistance = Math.min(green, blue) - red
-        const isTeal = green > 16 && blue > red * .72 && green > red * .94 && tealDistance > -3
-        if (isTeal) {
-          const alpha = 1 - Math.min(1, Math.max(0, (tealDistance + 3) / 14))
-          pixels[index + 3] = Math.round(255 * alpha)
-          if (alpha > 0) {
-            pixels[index + 1] = Math.min(green, Math.max(red * .92, blue * .72))
-            pixels[index + 2] = Math.min(blue, red * 1.02)
-          }
-        } else if (green > 28 && green > red * 1.04 && blue > red * .38) {
-          const edgeStrength = Math.min(1, (green - red) / 18)
-          pixels[index + 3] = Math.round(255 * (1 - edgeStrength * .72))
-          pixels[index + 1] = Math.min(green, Math.max(red * .9, blue * .68))
-          pixels[index + 2] = Math.min(blue, red * .96)
-        }
-      }
-      context.putImageData(frame, 0, 0)
-      surface.classList.add('is-rendered')
-    }
-    const requestTick = () => {
-      if (!frameRef.current) frameRef.current = requestAnimationFrame(animate)
-    }
-    const animate = () => {
-      frameRef.current = 0
-      if (!mounted) return
-      if (!video.paused && video.readyState >= 2) {
-        render()
-        requestTick()
-      }
-    }
-    const readScroll = () => {
-      const hero = surface.closest('.hero') as HTMLElement | null
-      if (!hero) return
-      const max = Math.max(1, hero.offsetHeight - window.innerHeight)
-      const progress = Math.min(1, Math.max(0, -hero.getBoundingClientRect().top / max))
-      hero.style.setProperty('--hero-progress', progress.toFixed(4))
-      document.documentElement.style.setProperty('--hero-progress', progress.toFixed(4))
-      document.documentElement.style.setProperty('--hero-handoff', `${((1 - progress) * 18).toFixed(2)}px`)
-    }
-    const release = () => {
-      window.clearTimeout(releaseTimer)
-      video.pause()
-      render()
-      document.body.classList.remove('intro-lock')
-      surface.classList.add('intro-complete')
-      readScroll()
-    }
-    const removeMobileTriggers = () => {
-      window.removeEventListener('scroll', startOnMobileScroll)
-      window.removeEventListener('touchmove', startOnMobileScroll)
-      window.removeEventListener('touchstart', startOnMobileScroll)
-      window.removeEventListener('pointerdown', startOnMobileScroll)
-    }
-    const start = () => {
-      if (started || attempting) return
-      if (video.readyState < 2 || !Number.isFinite(video.duration) || !video.duration) {
-        video.load()
-        return
-      }
-      attempting = true
-      video.currentTime = 0
-      video.playbackRate = Math.max(1, video.duration / 4)
-      const play = video.play()
-      if (play) {
-        play.then(() => {
-          if (!mounted) return
-          attempting = false
-          started = true
-          removeMobileTriggers()
-          requestTick()
-          releaseTimer = window.setTimeout(release, 4200)
-        }).catch(() => {
-          attempting = false
-          render()
-        })
-      }
-    }
-    const loaded = () => {
-      render()
-      if (!isMobile || mobileIntent) start()
-    }
-    const startOnMobileScroll = () => {
-      mobileIntent = true
-      start()
-    }
-    video.addEventListener('loadeddata', loaded)
-    video.addEventListener('canplay', loaded)
-    video.addEventListener('ended', release)
-    video.addEventListener('error', release)
-    window.addEventListener('scroll', readScroll, { passive: true })
-    window.addEventListener('resize', readScroll)
-    if (isMobile) {
-      window.addEventListener('scroll', startOnMobileScroll, { passive: true })
-      window.addEventListener('touchmove', startOnMobileScroll, { passive: true })
-      window.addEventListener('touchstart', startOnMobileScroll, { passive: true })
-      window.addEventListener('pointerdown', startOnMobileScroll, { passive: true })
-    }
-    readScroll()
-    if (video.readyState >= 2) loaded()
-    if (!isMobile) releaseTimer = window.setTimeout(() => { if (!started) release() }, 8000)
-    return () => {
-      mounted = false
-      window.clearTimeout(releaseTimer)
-      cancelAnimationFrame(frameRef.current)
-      document.body.classList.remove('intro-lock')
-      video.removeEventListener('loadeddata', loaded)
-      video.removeEventListener('canplay', loaded)
-      video.removeEventListener('ended', release)
-      video.removeEventListener('error', release)
-      window.removeEventListener('scroll', readScroll)
-      window.removeEventListener('resize', readScroll)
-      removeMobileTriggers()
-    }
-  }, [])
-  return <div className="hero-visual video-scrubber"><div ref={surfaceRef} className="video-scrubber__surface">
-    <video ref={videoRef} className="hero-assembly-video" src={assemblyVideo} muted playsInline preload="auto" disablePictureInPicture aria-hidden="true" tabIndex={-1} />
-    <canvas ref={canvasRef} className="hero-assembly-canvas" role="img" aria-label="Montagem animada de um hambúrguer artesanal" />
-  </div></div>
-}
-
 function Hero() {
   return <section id="inicio" className="hero">
     <div className="hero-word" aria-hidden="true">WILL</div>
     <div className="container hero-grid">
       <div className="hero-copy">
-        <h1>Não é só<br /><em>um hambúrguer.</em></h1>
+        <h1>Não é só<br /><em><span>um</span>{' '}<span>hambúrguer.</span></em></h1>
         <p>É artesanal. É feito na hora. É do jeito que tem que ser.</p>
-        <div className="hero-actions"><OrderLink event="delivery_click_hero">Pedir agora <ArrowRight size={18} /></OrderLink><a className="text-link" href="#favoritos">Conhecer os favoritos</a></div>
+        <div className="hero-actions"><OrderLink event="delivery_click_hero"><span className="desktop-label">Pedir agora</span><span className="mobile-label">Fazer pedido</span> <ArrowRight size={18} /></OrderLink><a className="text-link" href="#favoritos"><span className="desktop-label">Conhecer os favoritos</span><span className="mobile-label">Ver cardápio</span></a></div>
         <div className="hero-trust" aria-label="Diferenciais"><span><Flame size={16} /> Feito na hora</span><span><ShieldCheck size={16} /> Pedido concluído no delivery</span></div>
       </div>
-      <HeroAssembly />
+      <div className="hero-visual"><img className="hero-product" src={heroBurger} width="1536" height="1024" alt="Hambúrguer artesanal da Will Sanduíches" fetchPriority="high" /></div>
     </div>
   </section>
 }
