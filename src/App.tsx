@@ -69,6 +69,7 @@ function HeroAssembly() {
     if (!video || !canvas || !surface) return
     let mounted = true
     let started = false
+    let attempting = false
     let mobileIntent = false
     let releaseTimer = 0
     const isMobile = window.matchMedia('(max-width: 700px)').matches
@@ -135,14 +136,35 @@ function HeroAssembly() {
       surface.classList.add('intro-complete')
       readScroll()
     }
+    const removeMobileTriggers = () => {
+      window.removeEventListener('scroll', startOnMobileScroll)
+      window.removeEventListener('touchmove', startOnMobileScroll)
+      window.removeEventListener('touchstart', startOnMobileScroll)
+      window.removeEventListener('pointerdown', startOnMobileScroll)
+    }
     const start = () => {
-      if (started || !Number.isFinite(video.duration) || !video.duration) return
-      started = true
+      if (started || attempting) return
+      if (video.readyState < 2 || !Number.isFinite(video.duration) || !video.duration) {
+        video.load()
+        return
+      }
+      attempting = true
       video.currentTime = 0
       video.playbackRate = Math.max(1, video.duration / 4)
       const play = video.play()
-      if (play) play.then(requestTick).catch(release)
-      releaseTimer = window.setTimeout(release, 4200)
+      if (play) {
+        play.then(() => {
+          if (!mounted) return
+          attempting = false
+          started = true
+          removeMobileTriggers()
+          requestTick()
+          releaseTimer = window.setTimeout(release, 4200)
+        }).catch(() => {
+          attempting = false
+          render()
+        })
+      }
     }
     const loaded = () => {
       render()
@@ -150,15 +172,10 @@ function HeroAssembly() {
     }
     const startOnMobileScroll = () => {
       mobileIntent = true
-      if (video.readyState >= 2) {
-        start()
-        window.removeEventListener('scroll', startOnMobileScroll)
-        window.removeEventListener('touchmove', startOnMobileScroll)
-        window.removeEventListener('touchstart', startOnMobileScroll)
-        window.removeEventListener('pointerdown', startOnMobileScroll)
-      }
+      start()
     }
     video.addEventListener('loadeddata', loaded)
+    video.addEventListener('canplay', loaded)
     video.addEventListener('ended', release)
     video.addEventListener('error', release)
     window.addEventListener('scroll', readScroll, { passive: true })
@@ -178,14 +195,12 @@ function HeroAssembly() {
       cancelAnimationFrame(frameRef.current)
       document.body.classList.remove('intro-lock')
       video.removeEventListener('loadeddata', loaded)
+      video.removeEventListener('canplay', loaded)
       video.removeEventListener('ended', release)
       video.removeEventListener('error', release)
       window.removeEventListener('scroll', readScroll)
       window.removeEventListener('resize', readScroll)
-      window.removeEventListener('scroll', startOnMobileScroll)
-      window.removeEventListener('touchmove', startOnMobileScroll)
-      window.removeEventListener('touchstart', startOnMobileScroll)
-      window.removeEventListener('pointerdown', startOnMobileScroll)
+      removeMobileTriggers()
     }
   }, [])
   return <div className="hero-visual video-scrubber"><div ref={surfaceRef} className="video-scrubber__surface">
