@@ -57,3 +57,5 @@
 .nav.open{animation:nav-reveal .3s cubic-bezier(.16,1,.3,1) both}
 @keyframes nav-reveal{from{opacity:0;transform:translate3d(0,-10px,0)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.favorites,.brand-story .story-image,.brand-story .story-copy,.desire h2{transform:none;clip-path:none;opacity:1}.desire>img{animation-play-state:paused}.nav.open{animation:none}.button svg,.text-link svg,.footer-link svg{transition:none}}
+
+@media(max-width:700px){.hero{height:auto;min-height:0}.hero-grid{position:relative;top:auto;height:auto;min-height:0;padding-block:106px 34px;transform:none}.hero-copy{opacity:1;transform:none}.video-scrubber{transform:none}.favorites{margin-top:0}.video-scrubber__surface{height:420px}}

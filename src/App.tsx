@@ -154,6 +154,8 @@ function HeroAssembly() {
         start()
         window.removeEventListener('scroll', startOnMobileScroll)
         window.removeEventListener('touchmove', startOnMobileScroll)
+        window.removeEventListener('touchstart', startOnMobileScroll)
+        window.removeEventListener('pointerdown', startOnMobileScroll)
       }
     }
     video.addEventListener('loadeddata', loaded)
@@ -164,6 +166,8 @@ function HeroAssembly() {
     if (isMobile) {
       window.addEventListener('scroll', startOnMobileScroll, { passive: true })
       window.addEventListener('touchmove', startOnMobileScroll, { passive: true })
+      window.addEventListener('touchstart', startOnMobileScroll, { passive: true })
+      window.addEventListener('pointerdown', startOnMobileScroll, { passive: true })
     }
     readScroll()
     if (video.readyState >= 2) loaded()
@@ -180,6 +184,8 @@ function HeroAssembly() {
       window.removeEventListener('resize', readScroll)
       window.removeEventListener('scroll', startOnMobileScroll)
       window.removeEventListener('touchmove', startOnMobileScroll)
+      window.removeEventListener('touchstart', startOnMobileScroll)
+      window.removeEventListener('pointerdown', startOnMobileScroll)
     }
   }, [])
   return <div className="hero-visual video-scrubber"><div ref={surfaceRef} className="video-scrubber__surface">
@@ -261,6 +267,8 @@ function MobileOrder() {
 
 export default function App() {
   useEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduced) return
     const observer = new IntersectionObserver(entries => entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('is-visible')), { threshold: .12 })
